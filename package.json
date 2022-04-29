@@ -1,6 +1,6 @@
 {
-  "name": "remix-auth-strategy-template",
-  "version": "0.0.0",
+  "name": "remix-auth-strapi",
+  "version": "0.0.1",
   "main": "./build/index.js",
   "types": "./build/index.d.ts",
   "scripts": {
@@ -13,11 +13,20 @@
   "keywords": [
     "remix",
     "remix-auth",
+    "remix-auth-strapi",
     "auth",
     "authentication",
-    "strategy"
+    "strategy",
+    "strapi"
   ],
   "license": "MIT",
+  "author": {
+    "name": "Karthikeyan Mariappan",
+    "twitter": "@knmariappan"
+  },
+  "repository": {
+    "url": "git@github.com:kmariappan/remix-auth-strapi.git"
+  },
   "files": [
     "build",
     "package.json",
@@ -35,6 +44,7 @@
     "@remix-run/react": "^1.1.1",
     "@remix-run/server-runtime": "^1.0.0",
     "@types/jest": "^26.0.23",
+    "@types/qs": "^6.9.7",
     "@typescript-eslint/eslint-plugin": "^4.23.0",
     "@typescript-eslint/parser": "^4.23.0",
     "babel-jest": "^26.6.3",
@@ -52,6 +62,9 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
+    "@kmariappan/strapi-client-js": "^1.2.2",
+    "axios": "^0.27.2",
+    "qs": "^6.10.3",
     "remix-auth": "^3.0.0"
   }
 }
