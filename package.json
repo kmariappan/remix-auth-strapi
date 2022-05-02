@@ -40,6 +40,7 @@
     "@babel/preset-env": "^7.14.1",
     "@babel/preset-react": "^7.13.13",
     "@babel/preset-typescript": "^7.13.0",
+    "@kmariappan/strapi-client-js": "^1.3.0",
     "@remix-run/node": "^1.0.3",
     "@remix-run/react": "^1.1.1",
     "@remix-run/server-runtime": "^1.0.0",
@@ -47,6 +48,7 @@
     "@types/qs": "^6.9.7",
     "@typescript-eslint/eslint-plugin": "^4.23.0",
     "@typescript-eslint/parser": "^4.23.0",
+    "axios": "^0.27.2",
     "babel-jest": "^26.6.3",
     "eslint": "^7.26.0",
     "eslint-config-prettier": "^8.3.0",
@@ -57,14 +59,12 @@
     "jest": "^26.6.3",
     "jest-fetch-mock": "^3.0.3",
     "prettier": "^2.3.2",
+    "qs": "^6.10.3",
     "react": "^17.0.2",
     "ts-node": "^9.1.1",
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@kmariappan/strapi-client-js": "^1.2.2",
-    "axios": "^0.27.2",
-    "qs": "^6.10.3",
     "remix-auth": "^3.0.0"
   }
 }
