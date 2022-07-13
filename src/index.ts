@@ -1,86 +1,69 @@
-/* eslint-disable prettier/prettier */
-import { SessionStorage } from "@remix-run/server-runtime"
-import {
-  AuthenticateOptions,
-  Strategy,
-  StrategyVerifyCallback,
-} from "remix-auth"
-import { StrapiClient } from "@kmariappan/strapi-client-js"
-import { AuthData } from "@kmariappan/strapi-client-js/src/lib/types/auth"
-import { StrapiApiResponse } from "@kmariappan/strapi-client-js/src/lib/types/base"
+import type { createCookieSessionStorage } from '@remix-run/node'
+import { Authenticator, AuthorizationError } from 'remix-auth'
+import type { StrapiAuthResponse } from './strapi-strategy'
+import { StrapiStrategy } from './strapi-strategy'
+import type { StrapiClient } from '@kmariappan/strapi-client-js'
 
-export type StrapiAuthResponse = StrapiApiResponse<AuthData>
-
-export interface StrapiStrategyOptions {
-  readonly strapiClient: StrapiClient
-
-  readonly sessionStorage: SessionStorage
-
-  readonly sessionKey?: string
-
-  readonly sessionErrorKey?: string
+export type StrapiAuthenticatorOptions = {
+    strapiClient: StrapiClient
+    sessionStorage: ReturnType<typeof createCookieSessionStorage>
+    sessionKey: string
+    sessionErrorKey: string
 }
 
-export interface VerifyParams {
-  readonly request: Request
+export { StrapiStrategy, StrapiAuthResponse }
 
-  readonly strapiClient: StrapiClient
-}
+export const createStrapiStrategy = (
+    options: StrapiAuthenticatorOptions
+): {
+    strapiStrategy: StrapiStrategy
+    authenticator: Authenticator<StrapiAuthResponse>
+} => {
+    const { strapiClient, sessionStorage, sessionKey, sessionErrorKey } =
+        options
 
-export class StrapiStragegy extends Strategy<StrapiAuthResponse, VerifyParams> {
-  name = "strapi"
+    const strapiStrategy = new StrapiStrategy(
+        {
+            strapiClient,
+            sessionStorage,
+            sessionKey: sessionKey ? sessionKey : 'strapi:session',
+            sessionErrorKey: sessionErrorKey ? sessionErrorKey : 'strapi:error',
+        },
+        async ({ request, strapiClient }) => {
+            const form = await request.formData()
+            const email = form?.get('email')
+            const password = form?.get('password')
 
-  readonly sessionKey: string
-  readonly sessionErrorKey: string
+            if (!email) throw new AuthorizationError('Email is required')
+            if (typeof email !== 'string')
+                throw new AuthorizationError('Email must be string')
 
-  private readonly strapiClient: StrapiClient
-  private readonly sessionStorage: SessionStorage
+            if (!password) throw new AuthorizationError('Password is required')
+            if (typeof password !== 'string')
+                throw new AuthorizationError('Password must be string')
 
-  constructor(
-    options: StrapiStrategyOptions,
-    verify: StrategyVerifyCallback<StrapiAuthResponse, VerifyParams>
-  ) {
-    if (!options?.strapiClient)
-      throw new Error(
-        "StrapiStrategy : Constructor expected to receive a strapi client instance. Missing options.strapiClient"
-      )
+            return new Promise<StrapiAuthResponse>((resolve) => {
+                strapiClient.auth.signIn({ email, password }).then((res) => {
+                    if (res.error || !res.data) {
+                        throw new AuthorizationError(
+                            res.error?.message ?? 'No user session found'
+                        )
+                    }
+                    resolve(res)
+                })
+            })
+        }
+    )
 
-    if (!options?.sessionStorage)
-      throw new Error(
-        "StrapiStrategy : Constructor expected to receive a session storage instance. Missing options.sessionStorage"
-      )
-    if (!verify)
-      throw new Error(
-        "StrapiStrategy : Constructor expected to receive a verify function. Missing verify"
-      )
+    const authenticator = new Authenticator<StrapiAuthResponse>(
+        sessionStorage,
+        {
+            sessionKey: strapiStrategy.sessionKey,
+            sessionErrorKey: strapiStrategy.sessionErrorKey,
+        }
+    )
 
-    super(verify)
+    authenticator.use(strapiStrategy)
 
-    this.strapiClient = options.strapiClient
-    this.sessionStorage = options.sessionStorage
-    this.sessionKey = options.sessionKey ?? "strapi-auth:session"
-    this.sessionErrorKey = options.sessionErrorKey ?? "strapi-auth:error"
-  }
-
-  async authenticate(
-    request: Request,
-    sessionStorage: SessionStorage,
-    options: AuthenticateOptions
-  ): Promise<StrapiAuthResponse> {
-    const authResponse = await this.verify({
-      request,
-      strapiClient: this.strapiClient,
-    })
-
-    return authResponse.data?.jwt
-      ? this.success(authResponse, request, sessionStorage, options)
-      : this.failure(
-          authResponse.error?.message
-            ? authResponse.error?.message
-            : "no user found",
-          request,
-          sessionStorage,
-          options
-        )
-  }
+    return { authenticator, strapiStrategy }
 }

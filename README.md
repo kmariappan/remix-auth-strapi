@@ -1,37 +1,8 @@
-# Remix Auth - Strategy Template
-
-> A template for creating a new Remix Auth strategy.
-
-If you want to create a new strategy for Remix Auth, you could use this as a template for your repository.
-
-The repo installs the latest version of Remix Auth and do the setup for you to have tests, linting and typechecking.
-
-## How to use it
-
-1. In the `package.json` change `name` to your strategy name, also add a description and ideally an author, repository and homepage keys.
-2. In `src/index.ts` change the `MyStrategy` for the strategy name you want to use.
-3. Implement the strategy flow inside the `authenticate` method. Use `this.success` and `this.failure` to correctly send finish the flow.
-4. In `tests/index.test.ts` change the tests to use your strategy and test it. Inside the tests you have access to `jest-fetch-mock` to mock any fetch you may need to do.
-5. Once you are ready, set the secrets on Github
-   - `NPM_TOKEN`: The token for the npm registry
-   - `GIT_USER_NAME`: The you want the bump workflow to use in the commit.
-   - `GIT_USER_EMAIL`: The email you want the bump workflow to use in the commit.
-
-## Scripts
-
-- `build`: Build the project for production using the TypeScript compiler (strips the types).
-- `typecheck`: Check the project for type errors, this also happens in build but it's useful to do in development.
-- `lint`: Runs ESLint againt the source codebase to ensure it pass the linting rules.
-- `test`: Runs all the test using Jest.
-
-## Documentations
-
-To facilitate creating a documentation for your strategy, you can use the following Markdown
-
-```markdown
-# Strategy Name
+# Remix Auth Strapi
 
 <!-- Description -->
+
+The Strapi strategy is used to authenticate users against a Strapi CMS account.
 
 ## Supported runtimes
 
@@ -40,9 +11,177 @@ To facilitate creating a documentation for your strategy, you can use the follow
 | Node.js    | ✅          |
 | Cloudflare | ✅          |
 
-<!-- If it doesn't support one runtime, explain here why -->
+## Documentations
+
+### Install the package
+
+```js
+   yarn add remix-auth-strapi
+
+   or
+
+   npm install remix-auth-strapi
+```
 
 ## How to use
 
-<!-- Explain how to use the strategy, here you should tell what options it expects from the developer when instantiating the strategy -->
+#### Create the StrapiClient Instance
+
+```ts
+// app/strapi.ts
+
+import { createClient } from '@kmariappan/strapi-client-js'
+
+declare global {
+    namespace NodeJS {
+        interface ProcessEnv {
+            STRAPI_URL: string
+            SECRET_KEY: string
+        }
+    }
+}
+
+if (!process.env.STRAPI_URL) throw new Error('STRAPI_URL is required')
+
+export const getStrapiClient = (apiToken?: string) =>
+    createClient({
+        url: process.env.STRAPI_URL,
+        apiToken,
+    })
+```
+
+#### Create the StrapiStrategy Instance by using the `createStrapiStrategy` helper function.
+
+```ts
+// app/auth.server.ts
+
+import { createCookieSessionStorage } from '@remix-run/node'
+import { createStrapiStrategy } from 'remix-auth-strapi'
+import { getStrapiClient } from './strapi'
+
+const strapiClient = getStrapiClient()
+
+const sessionStorage = createCookieSessionStorage({
+    cookie: {
+        name: 'strapi',
+        httpOnly: true,
+        path: '/',
+        sameSite: 'lax',
+        secrets: [process.env.SECRET_KEY],
+        secure: process.env.NODE_ENV === 'production',
+    },
+})
+
+const { authenticator, strapiStrategy } = createStrapiStrategy({
+    sessionStorage,
+    strapiClient,
+    sessionKey: 'session-key', // Defualt value  strapi:session
+    sessionErrorKey: 'session-error-key', // Defualt value  'strapi:error',
+})
+
+export { authenticator, strapiStrategy, sessionStorage }
+```
+
+#### Example Login Page
+
+```tsx
+// app/routes/login
+import type { ActionFunction, LoaderFunction } from '@remix-run/node'
+import { json } from '@remix-run/node'
+import { Form, useLoaderData } from '@remix-run/react'
+import { authenticator, strapiStrategy, sessionStorage } from '~/auth.server'
+
+interface LoaderData {
+    error: { message: string } | null
+}
+
+export const action: ActionFunction = async ({ request }) => {
+    await authenticator.authenticate('strapi', request, {
+        successRedirect: '/private',
+        failureRedirect: '/login',
+    })
+}
+
+export const loader: LoaderFunction = async ({ request }) => {
+    await strapiStrategy.checkSession(request, {
+        successRedirect: '/private',
+    })
+
+    const session = await sessionStorage.getSession(
+        request.headers.get('Cookie')
+    )
+
+    const error = session.get(
+        strapiStrategy.sessionErrorKey
+    ) as LoaderData['error']
+
+    return json<LoaderData>({ error })
+}
+
+export default function Screen() {
+    const { error } = useLoaderData<LoaderData>()
+
+    return (
+        <Form method="post">
+            {error && <div>{error.message}</div>}
+            <div>
+                <label htmlFor="email">Email</label>
+                <input type="email" name="email" id="email" />
+            </div>
+
+            <div>
+                <label htmlFor="password">Password</label>
+                <input type="password" name="password" id="password" />
+            </div>
+
+            <button>Log In</button>
+        </Form>
+    )
+}
+```
+
+#### Example Private Page
+
+```tsx
+import type { User } from '@kmariappan/strapi-client-js/src/lib/types/auth'
+import type { ActionFunction, LoaderFunction } from '@remix-run/node'
+import { json } from '@remix-run/node'
+import { Form, useLoaderData } from '@remix-run/react'
+import { authenticator, strapiStrategy } from '~/auth.server'
+import { getStrapiClient } from '~/strapi'
+
+interface LoaderData {
+    user?: User | null
+}
+
+export const action: ActionFunction = async ({ request }) => {
+    await authenticator.logout(request, {
+        redirectTo: '/login',
+    })
+}
+
+export const loader: LoaderFunction = async ({ request }) => {
+    const session = await strapiStrategy.checkSession(request, {
+        failureRedirect: '/login',
+    })
+
+    const strapiClient = getStrapiClient(session.data?.jwt)
+
+    const { data } = await strapiClient.auth.getMe()
+
+    return json<LoaderData>({ user: data ?? null })
+}
+
+export default function Screen() {
+    const { user } = useLoaderData<LoaderData>()
+    return (
+        <>
+            {user && <h1> {user.email}</h1>}
+
+            <Form method="post">
+                <button>Log Out</button>
+            </Form>
+        </>
+    )
+}
 ```
