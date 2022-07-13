@@ -4,17 +4,17 @@ import type { StrapiAuthResponse } from './strapi-strategy'
 import { StrapiStrategy } from './strapi-strategy'
 import type { StrapiClient } from '@kmariappan/strapi-client-js'
 
-export type StrapiAuthenticatorOptions = {
+export type CreateStrapiStrategyOptions = {
     strapiClient: StrapiClient
     sessionStorage: ReturnType<typeof createCookieSessionStorage>
-    sessionKey: string
-    sessionErrorKey: string
+    sessionKey?: string
+    sessionErrorKey?: string
 }
 
 export { StrapiStrategy, StrapiAuthResponse }
 
 export const createStrapiStrategy = (
-    options: StrapiAuthenticatorOptions
+    options: CreateStrapiStrategyOptions
 ): {
     strapiStrategy: StrapiStrategy
     authenticator: Authenticator<StrapiAuthResponse>

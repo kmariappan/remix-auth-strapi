@@ -28,7 +28,7 @@ The Strapi strategy is used to authenticate users against a Strapi CMS account.
 #### Create the StrapiClient Instance
 
 ```ts
-// app/strapi.ts
+// app/strapi.server.ts
 
 import { createClient } from '@kmariappan/strapi-client-js'
 
@@ -57,7 +57,7 @@ export const getStrapiClient = (apiToken?: string) =>
 
 import { createCookieSessionStorage } from '@remix-run/node'
 import { createStrapiStrategy } from 'remix-auth-strapi'
-import { getStrapiClient } from './strapi'
+import { getStrapiClient } from './strapi.server'
 
 const strapiClient = getStrapiClient()
 
