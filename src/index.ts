@@ -44,11 +44,6 @@ export const createStrapiStrategy = (
 
             return new Promise<StrapiAuthResponse>((resolve) => {
                 strapiClient.auth.signIn({ email, password }).then((res) => {
-                    if (res.error || !res.data) {
-                        throw new AuthorizationError(
-                            res.error?.message ?? 'No user session found'
-                        )
-                    }
                     resolve(res)
                 })
             })
