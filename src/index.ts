@@ -26,8 +26,8 @@ export const createStrapiStrategy = (
         {
             strapiClient,
             sessionStorage,
-            sessionKey: sessionKey ? sessionKey : 'strapi:session',
-            sessionErrorKey: sessionErrorKey ? sessionErrorKey : 'strapi:error',
+            sessionKey: sessionKey ?? 'strapi:session',
+            sessionErrorKey: sessionErrorKey ?? 'strapi:error',
         },
         async ({ request, strapiClient }) => {
             const form = await request.formData()
