@@ -17,9 +17,9 @@ export interface StrapiStrategyOptions {
 
     readonly sessionStorage: SessionStorage
 
-    readonly sessionKey?: string
+    readonly sessionKey: string
 
-    readonly sessionErrorKey?: string
+    readonly sessionErrorKey: string
 }
 
 export interface VerifyParams {
@@ -59,8 +59,8 @@ export class StrapiStrategy extends Strategy<StrapiAuthResponse, VerifyParams> {
 
         this.strapiClient = options.strapiClient
         this.sessionStorage = options.sessionStorage
-        this.sessionKey = options.sessionKey ?? 'strapi-auth:session'
-        this.sessionErrorKey = options.sessionErrorKey ?? 'strapi-auth:error'
+        this.sessionKey = options.sessionKey
+        this.sessionErrorKey = options.sessionErrorKey
     }
 
     async authenticate(
